@@ -63,4 +63,3 @@ Run `python test_db.py` to verify database lookups, or `python test_chat.py` to 
 - "Do you have Nike Air Force 1 in size 42?"
 - "Is this available?" (bot will ask follow-up questions)
 
-## Project Structure

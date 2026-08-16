@@ -67,7 +67,9 @@ Run `python test_db.py` to verify database lookups, or `python test_chat.py` to 
 Video walkthroughs demonstrating the chatbot's functionality, corresponding to Phase D testing tasks:
 
 -Order-status conversations — successful lookup, multi-turn (missing order ID), and failure case WATCH VIDEO (https://youtu.be/xcp8LaZAXlE)
+
 -Stock-availability conversations — in-stock, out-of-stock, alternative sizes suggested, and product not found WATCH VIDEO (https://youtu.be/6FGO5qa2zyQ)
+
 -End-to-end integration — full conversation through the live chat UI, covering greetings, order status, stock checks, and out-of-scope handling WATCH VIDEO (https://youtu.be/9ym_bpBgcd4) 
 
 

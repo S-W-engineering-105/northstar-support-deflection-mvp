@@ -34,3 +34,20 @@ send("s7", "Hi")
 
 # --- Test 8: Out of scope ---
 send("s8", "Can I get a refund?")
+
+#new test edge cases
+
+# --- Edge case 1: completely empty message ---
+send("e1", "")
+
+# --- Edge case 2: garbage/random text ---
+send("e2", "asdkfjaslkdjf")
+
+# --- Edge case 3: order ID in wrong format ---
+send("e3", "Where is order 1001?")  # missing "NS-" prefix
+
+# --- Edge case 4: numbers only, no context ---
+send("e4", "1001")
+
+# --- Edge case 5: very long random message ---
+send("e5", "hello " * 50)

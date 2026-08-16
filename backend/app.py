@@ -1,42 +1,142 @@
-# backend/app.py (routing logic, simplified)
+# backend/app.py
 from flask import Flask, request, jsonify
-from db import get_order_status, check_stock
+from db import get_order_status, check_stock, product_exists, get_available_sizes
+import re
 
 app = Flask(__name__)
 
+SESSIONS = {}
+
+KNOWN_PRODUCTS = [
+    "Nike Air Force 1", "Adidas Ultraboost", "Puma RS-X",
+    "New Balance 550", "Converse Chuck Taylor", "Vans Old Skool"
+]
+
+
+def detect_intent(message):
+    msg = message.lower()
+    if any(word in msg for word in ["order", "ship", "track", "delivery", "arrive"]):
+        return "order_status"
+    if any(word in msg for word in ["stock", "size", "available", "have"]):
+        return "stock_availability"
+    if msg.strip() in ["hi", "hello", "hey"]:
+        return "greeting"
+    if msg.strip() in ["bye", "thanks", "thank you", "that's all"]:
+        return "goodbye"
+    return "fallback"
+
+
+def extract_order_id(message):
+    match = re.search(r"NS-\d{4}", message.upper())
+    return match.group(0) if match else None
+
+
+def extract_size(message):
+    match = re.search(r"\bsize\s*(\d{1,2})\b", message.lower())
+    if match:
+        return match.group(1)
+    match = re.search(r"\b(\d{2})\b", message)
+    return match.group(1) if match else None
+
+
+def extract_product_name(message):
+    for product in KNOWN_PRODUCTS:
+        if product.lower() in message.lower():
+            return product
+    return None
+
+
+def handle_order_lookup(order_id):
+    order = get_order_status(order_id)
+    if order:
+        return (f"Order {order['order_id']} is currently {order['status']}. "
+                f"Expected delivery: {order['expected_delivery_date']}.")
+    return "I couldn't find an order with that number. Please check the order number again and try again."
+
+
+def handle_stock_lookup(product, size):
+    item = check_stock(product, size)
+    if item:
+        if item["quantity_available"] > 0:
+            return (f"Yes, {item['product_name']} in size {item['size']} is available. "
+                    f"Quantity available: {item['quantity_available']}.")
+        else:
+            return f"Sorry, {product} in size {size} is currently out of stock."
+    else:
+        if product_exists(product):
+            other_sizes = get_available_sizes(product)
+            if other_sizes:
+                sizes_list = ", ".join(other_sizes)
+                return f"We don't have that size available. Available sizes are: {sizes_list}."
+            else:
+                return f"We don't have that size available, and no other sizes are currently in stock for {product}."
+        else:
+            return "We could not find that product, please check the name and try again."
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_message = request.json.get("message", "")
+    data = request.json
+    session_id = data.get("session_id", "default")
+    message = data.get("message", "")
 
-    # Very basic intent routing (Task 12) — improve later with better matching
-    if "order" in user_message.lower() or "ship" in user_message.lower():
-        # extract order_id from message — placeholder logic, refine as needed
-        order_id = extract_order_id(user_message)
-        if not order_id:
-            return jsonify({"reply": "Sure. Please provide your order number."})
-        
-        order = get_order_status(order_id)
-        if order:
-            return jsonify({
-                "reply": f"Order {order['order_id']} is currently {order['status']}. "
-                         f"Expected delivery: {order['expected_delivery_date']}."
-            })
-        else:
-            return jsonify({"reply": "I couldn't find an order with that number. Please check the order ID and try again."})
+    session = SESSIONS.get(session_id, {"state": None, "product": None})
 
-    elif "stock" in user_message.lower() or "size" in user_message.lower() or "available" in user_message.lower():
-        product_name, size = extract_product_and_size(user_message)  # placeholder
-        item = check_stock(product_name, size)
-        if item:
-            if item["quantity_available"] > 0:
-                return jsonify({
-                    "reply": f"Yes. {item['product_name']}, size {item['size']} is currently in stock. "
-                             f"We have {item['quantity_available']} units available."
-                })
-            else:
-                return jsonify({"reply": f"{item['product_name']}, size {item['size']} is currently out of stock."})
+    if session["state"] == "awaiting_order_id":
+        order_id = extract_order_id(message) or message.strip().upper()
+        SESSIONS[session_id] = {"state": None, "product": None}
+        return jsonify({"reply": handle_order_lookup(order_id)})
+
+    if session["state"] == "awaiting_product":
+        product = extract_product_name(message)
+        if not product:
+            return jsonify({"reply": "We could not find that product, please check the name and try again."})
+        session["product"] = product
+        session["state"] = "awaiting_size"
+        SESSIONS[session_id] = session
+        return jsonify({"reply": "What size are you looking for?"})
+
+    if session["state"] == "awaiting_size":
+        size = extract_size(message) or message.strip()
+        product = session["product"]
+        SESSIONS[session_id] = {"state": None, "product": None}
+        return jsonify({"reply": handle_stock_lookup(product, size)})
+
+    intent = detect_intent(message)
+
+    if intent == "order_status":
+        order_id = extract_order_id(message)
+        if order_id:
+            return jsonify({"reply": handle_order_lookup(order_id)})
         else:
-            return jsonify({"reply": "I couldn't find that product. Please check the product name and try again."})
+            session["state"] = "awaiting_order_id"
+            SESSIONS[session_id] = session
+            return jsonify({"reply": "Please provide your order number."})
+
+    elif intent == "stock_availability":
+        product = extract_product_name(message)
+        size = extract_size(message)
+        if product and size:
+            return jsonify({"reply": handle_stock_lookup(product, size)})
+        elif product:
+            session["state"] = "awaiting_size"
+            session["product"] = product
+            SESSIONS[session_id] = session
+            return jsonify({"reply": "What size are you looking for?"})
+        else:
+            session["state"] = "awaiting_product"
+            SESSIONS[session_id] = session
+            return jsonify({"reply": "What product are you looking for?"})
+
+    elif intent == "greeting":
+        return jsonify({"reply": "Hi! I'm Northstar's support assistant. I can help you check your order status or product availability. How can I help?"})
+
+    elif intent == "goodbye":
+        return jsonify({"reply": "You're welcome! Have a great day."})
 
     else:
-        return jsonify({"reply": "I'm currently able to help with order status and product availability."})
+        return jsonify({"reply": "I'm currently able to help with order status and stock availability. What would you like to check?"})
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

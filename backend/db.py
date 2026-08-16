@@ -64,3 +64,47 @@ def check_stock(product_name, size):
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
+
+
+
+
+def product_exists(product_name):
+    """Checks if a product name exists at all in inventory (any size)."""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT DISTINCT product_name FROM inventory WHERE product_name = %s LIMIT 1",
+            (product_name,)
+        )
+        result = cursor.fetchone()
+        return result is not None
+    except Error as e:
+        print(f"Database error: {e}")
+        return False
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+
+def get_available_sizes(product_name):
+    """Returns a list of sizes currently in stock (qty > 0) for a product."""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT size FROM inventory WHERE product_name = %s AND quantity_available > 0",
+            (product_name,)
+        )
+        results = cursor.fetchall()
+        return [row["size"] for row in results]
+    except Error as e:
+        print(f"Database error: {e}")
+        return []
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()

@@ -108,3 +108,25 @@ def get_available_sizes(product_name):
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
+
+def log_conversation(session_id, intent, query_type, was_successful):
+    """
+    Logs a chatbot interaction for audit/analytics purposes.
+    Does NOT store the actual message text — only category-level info.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO conversation_log (session_id, intent, query_type, was_successful) "
+            "VALUES (%s, %s, %s, %s)",
+            (session_id, intent, query_type, was_successful)
+        )
+        conn.commit()
+    except Error as e:
+        print(f"Database error while logging conversation: {e}")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()

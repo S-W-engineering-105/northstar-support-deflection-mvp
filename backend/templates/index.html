@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Northstar Support Assistant</title>
+<link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="chat-header">
+        <div class="title">Northstar Support Assistant</div>
+        <div class="status"><span class="status-dot"></span> Usually replies instantly</div>
+        <button id="clear-chat-btn" title="Clear chat">🗑️ Clear</button>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="quick-replies">
+        <button class="quick-reply-btn" data-msg="Check my order status">Check my order</button>
+        <button class="quick-reply-btn" data-msg="Check stock availability">Check stock</button>
+    </div>
+    <div id="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+        <button id="send-btn" disabled>Send</button>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

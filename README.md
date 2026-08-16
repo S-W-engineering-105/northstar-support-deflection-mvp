@@ -22,6 +22,7 @@ to obtain automated answers without contacting a support agent.
 - Mark Oigo
 - George Gachuiri
 - Nathalie Juma
+- Swalha Ahmed
 
 ## Project Board
 Northstar Sprint Board

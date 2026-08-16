@@ -45,4 +45,22 @@ Northstar Sprint Board
    Open `http://localhost/phpmyadmin`, create a database called `northstar_chatbot`, and run the SQL script in `docs/db-schema.sql` to create the tables and sample data.
 
 3. **Set up environment variables**
-   In the `backend/` folder, create a `.env` file:
+   In the `backend/` folder, create a `.env` file
+
+4. **Install dependencies**
+   cd backend
+    pip install flask mysql-connector-python python-dotenv requests
+6.  **Run the app**
+   python app.py
+7.  **Open the chatbot**
+   Go to `http://127.0.0.1:5000/` in your browser.
+
+## Testing
+Run `python test_db.py` to verify database lookups, or `python test_chat.py` to test the full conversation flow via terminal.
+
+## Sample Questions to Try
+- "Where is order NS-1001?"
+- "Do you have Nike Air Force 1 in size 42?"
+- "Is this available?" (bot will ask follow-up questions)
+
+## Project Structure
